@@ -21,32 +21,41 @@ export default function MakhdoomProfile() {
     const [bonusDesc, setBonusDesc] = useState('');
     const [bonusPoints, setBonusPoints] = useState('');
 
+    // تحميل البيانات عند أول دخول
     useEffect(() => {
         fetchDetails();
     }, []);
 
+    // ==========================
+    // دوال Toast + API
+    // ==========================
+
     const fetchDetails = async () => {
+        const toastId = toast.loading("جاري التحميل ...");
         try {
             const res = await api.get(`/makhdoom-details/${id}`);
             setInfo(res.data.info);
             setHistory(res.data.history);
+            toast.success("تم تحميل البيانات", { id: toastId });
         } catch {
-            toast.error("خطأ في تحميل البيانات");
+            toast.error("خطأ في تحميل البيانات", { id: toastId });
         }
     };
 
     const handleAttendance = async () => {
+        const toastId = toast.loading("جاري تسجيل الحضور...");
         try {
             await api.post('/attendance', { makhdoomId: id });
-            toast.success("تم تسجيل الحضور (+5)");
+            toast.success("تم تسجيل الحضور (+5)", { id: toastId });
             fetchDetails();
         } catch {
-            toast.error("خطأ في التسجيل");
+            toast.error("خطأ في التسجيل", { id: toastId });
         }
     };
 
     const handleBonus = async (e) => {
         e.preventDefault();
+        const toastId = toast.loading("جاري تنفيذ العملية...");
         try {
             let finalPoints = Number(bonusPoints);
             if (bonusType === 'deduct') finalPoints *= -1;
@@ -57,18 +66,25 @@ export default function MakhdoomProfile() {
                 description: bonusDesc
             });
 
-            toast.success("تم تنفيذ العملية");
+            toast.success(
+                bonusType === 'deduct' 
+                    ? `تم خصم ${bonusPoints} نقطة` 
+                    : `تم إضافة ${bonusPoints} نقطة`, 
+                { id: toastId }
+            );
+
             setShowBonus(false);
             setBonusDesc('');
             setBonusPoints('');
             fetchDetails();
         } catch {
-            toast.error("خطأ في العملية");
+            toast.error("خطأ في العملية", { id: toastId });
         }
     };
 
     const handleSubmitRecord = async (e) => {
         e.preventDefault();
+        const toastId = toast.loading("جاري حفظ السجل...");
         try {
             const payload = {
                 makhdoomId: id,
@@ -80,7 +96,7 @@ export default function MakhdoomProfile() {
             };
 
             const res = await api.post('/add-record', payload);
-            toast.success(`تم التسجيل (+${res.data.pointsAdded})`);
+            toast.success(`تم التسجيل (+${res.data.pointsAdded})`, { id: toastId });
 
             setBookName('');
             setChapter('');
@@ -88,56 +104,51 @@ export default function MakhdoomProfile() {
             setVersesCount('');
             fetchDetails();
         } catch {
-            toast.error("حدث خطأ");
+            toast.error("حدث خطأ", { id: toastId });
         }
     };
 
     const handleDeleteMakhdoom = async () => {
         if (!window.confirm("هل أنت متأكد من الحذف النهائي؟")) return;
+
+        const toastId = toast.loading("جاري الحذف...");
         try {
             await api.delete(`/delete-makhdoom/${id}`);
-            toast.success("تم الحذف");
+            toast.success("تم الحذف", { id: toastId });
             navigate('/dashboard');
         } catch {
-            toast.error("فشل الحذف");
+            toast.error("فشل الحذف", { id: toastId });
         }
     };
 
+    // ==========================
+    // واجهة المستخدم (بسيطة)
+    // ==========================
     if (!info) return <p className="text-center mt-10">جاري التحميل...</p>;
 
     return (
-        <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
-            
-            <button
-                onClick={() => navigate('/dashboard')}
-                className="mb-4 text-blue-600 font-bold"
-            >
+        <div className="min-h-screen bg-gray-100 p-4">
+            <button onClick={() => navigate('/dashboard')} className="mb-4 text-blue-600 font-bold">
                 ← رجوع
             </button>
 
             {/* Header */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow mb-6
-                            flex flex-col sm:flex-row gap-4 items-center justify-between border-t-4 border-blue-500">
-                
-                <div className="text-center sm:text-right">
-                    <h1 className="text-2xl sm:text-3xl font-bold">{info.name}</h1>
-                    <p className="text-sm text-gray-500">{info.phone || 'غير مسجل'}</p>
+            <div className="bg-white p-4 rounded shadow mb-6 flex justify-between items-center border-t-4 border-blue-500">
+                <div>
+                    <h1 className="text-2xl font-bold">{info.name}</h1>
+                    <p className="text-gray-500">{info.phone || 'غير مسجل'}</p>
                 </div>
-
-                <div className="text-center">
-                    <p className="text-sm text-gray-500">إجمالي النقاط</p>
-                    <p className={`text-3xl font-bold ${info.totalPoints < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <div>
+                    <p>إجمالي النقاط</p>
+                    <p className={info.totalPoints < 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
                         {info.totalPoints}
                     </p>
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <button onClick={handleAttendance}
-                        className="bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto">
-                        تسجيل حضور
+                <div className="flex gap-2">
+                    <button onClick={handleAttendance} className="bg-blue-600 text-white px-4 py-2 rounded">
+                        حضور
                     </button>
-                    <button onClick={() => setShowBonus(!showBonus)}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded w-full sm:w-auto">
+                    <button onClick={() => setShowBonus(!showBonus)} className="bg-yellow-500 text-white px-4 py-2 rounded">
                         مكافأة / خصم
                     </button>
                 </div>
@@ -145,110 +156,61 @@ export default function MakhdoomProfile() {
 
             {/* Bonus Form */}
             {showBonus && (
-                <div className="bg-white p-4 rounded shadow mb-6">
-                    <form onSubmit={handleBonus} className="flex flex-col sm:flex-row gap-2">
-                        <input
-                            className="flex-1 p-2 border rounded"
-                            placeholder="السبب"
-                            required
-                            value={bonusDesc}
-                            onChange={e => setBonusDesc(e.target.value)}
-                        />
-                        <input
-                            type="number"
-                            min="1"
-                            className="w-full sm:w-24 p-2 border rounded"
-                            placeholder="نقاط"
-                            required
-                            value={bonusPoints}
-                            onChange={e => setBonusPoints(e.target.value)}
-                        />
-                        <button
-                            className={`text-white px-6 py-2 rounded ${
-                                bonusType === 'add' ? 'bg-green-600' : 'bg-red-600'
-                            }`}>
-                            تنفيذ
-                        </button>
-                    </form>
-                </div>
+                <form onSubmit={handleBonus} className="bg-white p-4 rounded shadow mb-6 flex gap-2">
+                    <input
+                        className="flex-1 p-2 border rounded"
+                        placeholder="السبب"
+                        required
+                        value={bonusDesc}
+                        onChange={e => setBonusDesc(e.target.value)}
+                    />
+                    <input
+                        type="number"
+                        className="w-24 p-2 border rounded"
+                        placeholder="نقاط"
+                        required
+                        value={bonusPoints}
+                        onChange={e => setBonusPoints(e.target.value)}
+                    />
+                    <button className={`px-4 py-2 rounded text-white ${bonusType === 'add' ? 'bg-green-600' : 'bg-red-600'}`}>
+                        تنفيذ
+                    </button>
+                </form>
             )}
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* سجل المتابعة */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <form onSubmit={handleSubmitRecord} className="lg:col-span-1 bg-white p-4 rounded shadow space-y-2">
+                    <select className="w-full p-2 border rounded" value={category} onChange={e => setCategory(e.target.value)}>
+                        <option value="injil">إنجيل</option>
+                        <option value="mazmour">مزمور</option>
+                    </select>
+                    {category === 'injil' && (
+                        <input className="w-full p-2 border rounded" placeholder="اسم السفر" value={bookName} onChange={e => setBookName(e.target.value)} />
+                    )}
+                    <input className="w-full p-2 border rounded" placeholder="الإصحاح / رقم المزمور" value={chapter} onChange={e => setChapter(e.target.value)} />
+                    <input className="w-full p-2 border rounded" placeholder="الآيات" value={verses} onChange={e => setVerses(e.target.value)} />
+                    {category === 'mazmour' && (
+                        <input className="w-full p-2 border rounded" placeholder="عدد الآيات" value={versesCount} onChange={e => setVersesCount(e.target.value)} />
+                    )}
+                    <button className="w-full bg-blue-600 text-white py-2 rounded">حفظ</button>
+                </form>
 
-                {/* Form */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white p-4 rounded-lg shadow lg:sticky lg:top-4">
-                        <h2 className="font-bold mb-4">تسجيل محفوظات</h2>
-                        <form onSubmit={handleSubmitRecord} className="space-y-3">
-                            <select
-                                className="w-full p-2 border rounded"
-                                value={category}
-                                onChange={e => setCategory(e.target.value)}
-                            >
-                                <option value="injil">إنجيل</option>
-                                <option value="mazmour">مزمور</option>
-                            </select>
-
-                            {category === 'injil' && (
-                                <input
-                                    className="w-full p-2 border rounded"
-                                    placeholder="اسم السفر"
-                                    value={bookName}
-                                    onChange={e => setBookName(e.target.value)}
-                                />
-                            )}
-
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="الإصحاح / رقم المزمور"
-                                value={chapter}
-                                onChange={e => setChapter(e.target.value)}
-                            />
-
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="الآيات"
-                                value={verses}
-                                onChange={e => setVerses(e.target.value)}
-                            />
-
-                            {category === 'mazmour' && (
-                                <input
-                                    className="w-full p-2 border rounded"
-                                    placeholder="عدد الآيات"
-                                    value={versesCount}
-                                    onChange={e => setVersesCount(e.target.value)}
-                                />
-                            )}
-
-                            <button className="w-full bg-blue-600 text-white py-2 rounded">
-                                حفظ
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                {/* History */}
-                <div className="lg:col-span-2 space-y-3">
+                {/* سجل النشاط */}
+                <div className="lg:col-span-2 space-y-2">
                     {history.map(rec => (
-                        <div key={rec._id} className="bg-white p-4 rounded shadow text-sm">
-                            <div className="flex justify-between">
-                                <span>{rec.type}</span>
-                                <span className={rec.pointsEarned < 0 ? 'text-red-600' : 'text-green-600'}>
-                                    {rec.pointsEarned}
-                                </span>
-                            </div>
-                            <p className="text-gray-500">{rec.description || rec.book}</p>
+                        <div key={rec._id} className="bg-white p-3 rounded shadow flex justify-between">
+                            <span>{rec.type}</span>
+                            <span className={rec.pointsEarned < 0 ? 'text-red-600' : 'text-green-600'}>
+                                {rec.pointsEarned}
+                            </span>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="mt-10 text-center">
-                <button
-                    onClick={handleDeleteMakhdoom}
-                    className="text-red-600 border border-red-300 px-4 py-2 rounded">
+            <div className="mt-6 text-center">
+                <button onClick={handleDeleteMakhdoom} className="text-blue-300 border bg-red-600  cursor-pointer border-red-300 px-4 py-2 rounded">
                     حذف المخدوم نهائياً
                 </button>
             </div>

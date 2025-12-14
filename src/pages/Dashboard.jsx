@@ -14,13 +14,17 @@ export default function Dashboard() {
     }, []);
 
     const fetchMakhdumeen = async () => {
+        const toastId = toast.loading("جاري تحميل المخدومين...");
         try {
             const res = await api.get('/all-makhdoomen');
             setMakhdumeen(res.data);
+            toast.success("تم تحميل البيانات", { id: toastId });
         } catch (err) {
-            if(err.response?.status === 401) {
-                toast.error("الجلسة انتهت، سجل دخول تاني");
+            if (err.response?.status === 401) {
+                toast.error("الجلسة انتهت، سجل دخول تاني", { id: toastId });
                 navigate('/');
+            } else {
+                toast.error("حدث خطأ في تحميل البيانات", { id: toastId });
             }
         }
     };
@@ -28,13 +32,15 @@ export default function Dashboard() {
     const handleAddMakhdoom = async (e) => {
         e.preventDefault();
         if (!newName) return;
+
+        const toastId = toast.loading("جاري إضافة المخدوم...");
         try {
             await api.post('/create-makhdoom', { name: newName });
-            toast.success("تم إضافة المخدوم");
+            toast.success("تم إضافة المخدوم", { id: toastId });
             setNewName('');
             fetchMakhdumeen();
         } catch (err) {
-            toast.error("حدث خطأ");
+            toast.error("حدث خطأ", { id: toastId });
         }
     };
 

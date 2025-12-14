@@ -10,6 +10,8 @@ export default function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+
+        const toastId = toast.loading("جاري تسجيل الدخول...");
         try {
             const res = await api.post('/login', { email, password });
             
@@ -17,10 +19,10 @@ export default function Login() {
             localStorage.setItem('servantName', res.data.name);
             localStorage.setItem('role', res.data.role);
 
-            toast.success(`أهلاً بيك يا ${res.data.name}`);
+            toast.success(`أهلاً بيك يا ${res.data.name}`, { id: toastId });
             navigate('/dashboard');
         } catch (err) {
-            toast.error(err.response?.data || "بيانات الدخول غير صحيحة");
+            toast.error(err.response?.data || "بيانات الدخول غير صحيحة", { id: toastId });
         }
     };
 
@@ -30,7 +32,9 @@ export default function Login() {
                 onSubmit={handleLogin} 
                 className="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-md border-t-4 border-blue-600"
             >
-                <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center text-gray-800">تسجيل دخول الخدام ✝️</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center text-gray-800">
+                    تسجيل دخول الخدام ✝️
+                </h2>
                 
                 <div className="mb-4">
                     <label className="block text-gray-700 mb-2">الإيميل</label>
